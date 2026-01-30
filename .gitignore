@@ -2,3 +2,5 @@
 /bzImage
 /busybox-*
 /initramfs
+/boot.img
+/init.cpio
