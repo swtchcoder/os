@@ -5,12 +5,14 @@ THREADS=6
 
 build: boot.img
 
-boot.img: bzImage init.cpio
+boot.img: bzImage init.cpio BOOTX64.EFI syslinux.cfg
 	dd if=/dev/zero of=boot.img bs=1M count=50
 	mkfs -t fat boot.img
 	syslinux boot.img
 	mkdir -p m
 	mount boot.img m
+	mkdir -p m/EFI/BOOT
+	cp BOOTX64.EFI m/EFI/BOOT
 	cp syslinux.cfg m
 	cp bzImage init.cpio m
 	umount m
@@ -34,7 +36,7 @@ init.cpio: initramfs
 initramfs: busybox-$(BUSYBOX_VERSION)
 	$(MAKE) -C busybox-$(BUSYBOX_VERSION) defconfig
 	sed -i "s/CONFIG_STATIC=n/CONFIG_STATIC=y/" busybox-$(BUSYBOX_VERSION)/.config
-	sed -i "s/CONFIG_TC=y/CONFIG_STATIC=n/" busybox-$(BUSYBOX_VERSION)/.config
+	sed -i "s/CONFIG_TC=y/CONFIG_TC=n/" busybox-$(BUSYBOX_VERSION)/.config
 	sed -i "s/CONFIG_WERROR=y/CONFIG_WERROR=n/" busybox-$(BUSYBOX_VERSION)/.config
 	$(MAKE) -C busybox-$(BUSYBOX_VERSION) -j $(THREADS)
 	mkdir initramfs
@@ -45,6 +47,9 @@ busybox-$(BUSYBOX_VERSION): busybox-$(BUSYBOX_VERSION).tar.bz2
 
 busybox-$(BUSYBOX_VERSION).tar.bz2:
 	wget https://busybox.net/downloads/busybox-$(BUSYBOX_VERSION).tar.bz2
+
+BOOTX64.EFI: grub.cfg
+	grub-mkstandalone -O x86_64-efi -o BOOTX64.EFI "boot/grub/grub.cfg=grub.cfg"
 
 clean:
 	rm -rf linux-$(KERNEL_VERSION).tar.xz linux-$(KERNEL_VERSION)
